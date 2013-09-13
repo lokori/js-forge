@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<title>three.js webgl  pixel shader fire - lokori</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				color: #ffffff;
+				font-family:Monospace;
+				font-size:13px;
+				text-align:center;
+				font-weight: bold;
+
+				background-color: #000000;
+				margin: 0px;
+				overflow: hidden;
+			}
+
+			#info {
+				position: absolute;
+				top: 0px; width: 100%;
+				padding: 5px;
+			}
+
+			a {
+
+				color: #ffffff;
+			}
+
+			#oldie a { color:#da0 }
+		</style>
+	</head>
+	<body>
+
+		<div id="container"></div>
+		<script src="build/Three.js"></script>
+		<script src="js/Detector.js"></script>
+		<script src="js/Stats.js"></script>
+
+		<script id="vertexShader" type="x-shader/x-vertex">
+
+			void main()	{
+			  gl_Position = vec4( position, 1.0 );
+			}
+
+		</script>
+
+		// some lame plasma
+		<script id="fragmentShader" type="x-shader/x-fragment">
+
+			uniform vec2 resolution;
+			uniform float time;
+
+			// varying vec2 vUv;
+
+			void main()	{
+			  vec2 p = -1.0 + 2.0 * gl_FragCoord.xy / resolution.xy;
+			  // p boxed inside -1,-1 ... 1,1
+
+		        // float j = (1.0+p.y) /2.0;
+			  float i = (cos(tan(cos(p.y* 2.1*sin(time*0.4) + p.x) - sin(p.x*(8.0*sin(time*0.2) + cos(time))))) + 1.0) /2.0;
+			  float b = (sin(p.x + cos(p.y) + cos(p.x+p.y) + 6.0*cos(time*0.3)) + 1.0) / 2.0;
+			  float j = (sin(sin(1.0 + p.x + p.y)+cos(i+b+time)*sin(time)+p.x) + 1.0) / 2.0;
+		          // if (i<0.0) i=-i; if (j<0.0) j=-j;
+
+// hsv to rgb, 
+    float v = b;
+    float h = j;
+    float s = i;
+						      
+    float ff = (h/6.0)-floor(h/6.0);
+    float pp = v * (1.0 - s);
+    float qq = v * (1.0 - (ff*s));
+    float tt = v * (1.0 - ((1.0 - ff) * s));
+    float hh = mod(h*60.0,6.0);
+    if (hh < 1.0) {
+       i = v; j=tt; b=pp;
+    }
+    if ((hh >= 1.0) && (hh < 2.0)) {
+       i = qq; j=v; b=pp;
+    }
+    if ((hh >= 2.0) && (hh < 3.0)) {
+       i = pp; j=v; b=tt;
+    }
+    if ((hh >= 3.0) && (hh < 4.0)) {
+       i = pp; j=qq; b=v;
+    }
+    if ((hh >= 4.0) && (hh < 5.0)) {
+       i = tt; j=pp; b=v;
+    }
+    if ((hh >= 5.0) && (hh <= 6.0)) {
+       i = v; j=pp; b=qq;
+    }
+
+     // float e = 400.0*(p.x*0.5+0.5); // 0..400
+     // float f = 400.0*(p.y*0.5+0.5); // 0..400
+     // r = sqrt(pow(i-e,2.0)+pow(d-f,2.0)); 
+     //  float r = time
+
+		          gl_FragColor=vec4(vec3(i, j,  b), 1.0);
+			}
+
+		</script>
+
+		<script>
+
+			if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
+
+			var container, stats;
+
+			var camera, scene, renderer;
+
+			var uniforms, material, mesh;
+
+			var mouseX = 0, mouseY = 0,
+			lat = 0, lon = 0, phy = 0, theta = 0;
+
+			var windowHalfX = window.innerWidth / 2;
+			var windowHalfY = window.innerHeight / 2;
+
+			init();
+			animate();
+
+			function init() {
+
+				container = document.getElementById( 'container' );
+
+				scene = new THREE.Scene();
+
+				camera = new THREE.Camera();
+				camera.position.z = 1;
+				scene.add( camera );
+
+				uniforms = {
+					time: { type: "f", value: 1.0 },
+					resolution: { type: "v2", value: new THREE.Vector2() }
+				};
+
+				material = new THREE.ShaderMaterial( {
+
+					uniforms: uniforms,
+					vertexShader: document.getElementById( 'vertexShader' ).textContent,
+					fragmentShader: document.getElementById( 'fragmentShader' ).textContent
+
+					} );
+
+				mesh = new THREE.Mesh( new THREE.PlaneGeometry( 2, 2 ), material );
+				scene.add( mesh );
+
+				renderer = new THREE.WebGLRenderer();
+				container.appendChild( renderer.domElement );
+
+				stats = new Stats();
+				stats.domElement.style.position = 'absolute';
+				stats.domElement.style.top = '0px';
+				container.appendChild( stats.domElement );
+
+				onWindowResize();
+
+				window.addEventListener( 'resize', onWindowResize, false );
+
+			}
+
+			function onWindowResize( event ) {
+
+				uniforms.resolution.value.x = window.innerWidth;
+				uniforms.resolution.value.y = window.innerHeight;
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+
+
+			function animate() {
+				requestAnimationFrame( animate );
+				render();
+				stats.update();
+
+			}
+
+			function render() {
+				uniforms.time.value += 0.05;
+				renderer.render( scene, camera );
+			}
+
+		</script>
+
+	</body>
+</html>
